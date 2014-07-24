@@ -4,5 +4,11 @@
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
     <string name="title_activity_main">MainActivity</string>
+    <string name="button1Text">Get Image</string>
+    <string name="button2Text">Detect</string>
+    <string name="button3Text">Create</string>
+    <string name="button4Text">Photo</string>
+    <string name="textView1Text">Click Get Image</string>
+    <string name="imageContentDescription">This is for display image</string>
 
 </resources>

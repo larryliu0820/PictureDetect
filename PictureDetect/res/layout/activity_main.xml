@@ -3,16 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
-    <Button
-        android:id="@+id/button1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_marginRight="10dp"
-        android:text="Get Image" />
-
-    <ImageView
+    <ImageView android:contentDescription="@string/imageContentDescription"
         android:id="@+id/imageView1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -30,16 +21,16 @@
         android:layout_alignTop="@+id/button2"
         android:layout_toLeftOf="@+id/button2"
         android:gravity="center_vertical|center_horizontal"
-        android:text="state"
+        android:text="@string/textView1Text"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <Button
-        android:id="@+id/button3"
+        android:id="@+id/button1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_toLeftOf="@+id/button2"
-        android:text="Create" />
+        android:layout_alignParentRight="true"
+        android:text="@string/button1Text" />
 
     <Button
         android:id="@+id/button2"
@@ -47,6 +38,24 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_toLeftOf="@+id/button1"
-        android:text="Detect" />
+        android:text="@string/button2Text" />
+
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@+id/button1"
+        android:text="@string/button3Text" />
+
+    <Button
+        android:id="@+id/button4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@+id/button1"
+        android:layout_toRightOf="@+id/textView1"
+        android:text="@string/button4Text" />
+
 
 </RelativeLayout>

@@ -1,11 +1,13 @@
 package com.facpp.picturedetect;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -15,7 +17,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.util.Log;
 import android.view.Menu;
@@ -24,6 +29,7 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.facepp.error.FaceppParseException;
 import com.facepp.http.HttpRequests;
@@ -38,12 +44,27 @@ import com.facepp.http.PostParameters;
 public class MainActivity extends Activity {
 
 	final private static String TAG = "MainActivity";
+	final private int TAKE_PICTURE = 2;
 	final private int PICTURE_CHOOSE = 1;
 	
-	private ImageView imageView = null;
-	private Bitmap img = null;
-	private Button buttonDetect = null;
-	private TextView textView = null;
+	private ImageView imageView;
+	private Bitmap img;
+	private Bitmap photo;
+	private Button buttonGetImage;
+	private Button buttonDetect;
+	private Button buttonCreate;
+	private Button buttonPhoto;
+	private TextView textView;
+	private JSONObject jsonResponse;
+	
+	private String faceId = null;
+	private String personName = null;
+	
+	private Uri imageUri;
+	
+	final private HttpRequests httpRequests = new HttpRequests(
+			"7ce635b3cc93ae431de9c82174082905", 
+			"n4-z3AY6ZbVbGoEFZverm00nVgI5I_Wt", false, false);
 	
 	
     @Override
@@ -51,37 +72,91 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
-        Button button = (Button)this.findViewById(R.id.button1);
-        button.setOnClickListener(new OnClickListener() {
+        buttonGetImage = (Button)this.findViewById(R.id.button1);
+        buttonDetect = (Button)this.findViewById(R.id.button2);
+        buttonCreate = (Button)this.findViewById(R.id.button3);
+        buttonPhoto =(Button)this.findViewById(R.id.button4);
+        
+        buttonCreate.setVisibility(View.INVISIBLE);
+        buttonDetect.setVisibility(View.INVISIBLE);
+        buttonPhoto.setVisibility(View.INVISIBLE);
+        
+        buttonGetImage.setOnClickListener(new OnClickListener() {
 			
 			public void onClick(View arg0) {
 				//get a picture form your phone
+				new Thread(new Runnable(){
+					public void run(){
+						if(personName != null){
+							try {
+								httpRequests.personDelete(new PostParameters().setPersonName(personName));
+								MainActivity.this.runOnUiThread(new Runnable() {
+									public void run() {
+										textView.setText("delete successful");
+									}
+								});
+								personName = null;
+							} catch (FaceppParseException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+								MainActivity.this.runOnUiThread(new Runnable() {
+									public void run() {
+										textView.setText("delete unsuccessful");
+									}
+								});
+							}
+						}
+					}
+				}).start();
+					
+				buttonCreate.setVisibility(View.INVISIBLE);
+				buttonDetect.setVisibility(View.VISIBLE);
 				Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
 		        photoPickerIntent.setType("image/*");
 		        startActivityForResult(photoPickerIntent, PICTURE_CHOOSE);
 			}
 		});
         
-        Button buttonCreate = (Button)this.findViewById(R.id.button3);
+        buttonPhoto.setOnClickListener(new OnClickListener() {
+        	public void onClick(View arg0){
+        		Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+        		File photo = new File(Environment.getExternalStorageDirectory(),  "Pic.jpg");
+        	    intent.putExtra(MediaStore.EXTRA_OUTPUT,
+        	            Uri.fromFile(photo));
+        	    imageUri = Uri.fromFile(photo);
+                startActivityForResult(intent,TAKE_PICTURE);
+        	}
+        });
+        
         buttonCreate.setOnClickListener(new OnClickListener(){
         	
         	public void onClick(View arg0){
         		textView.setText("Create!");
+        		
+        		FaceppCreate faceppCreate = new FaceppCreate();
+        		faceppCreate.setCreateCallback(new Callback(){
+        			
+        			public void getResult(JSONObject rst) {
+        				
+        			}
+        		});
+        		faceppCreate.create();
+        		buttonCreate.setVisibility(View.INVISIBLE);	
+				buttonPhoto.setVisibility(View.VISIBLE);
         	}
         });
         textView = (TextView)this.findViewById(R.id.textView1);
         
-        buttonDetect = (Button)this.findViewById(R.id.button2);
-        buttonDetect.setVisibility(View.INVISIBLE);
+       
         buttonDetect.setOnClickListener(new OnClickListener() {
 			public void onClick(View arg0) {
 				
 				textView.setText("Waiting ...");
 				
 				FaceppDetect faceppDetect = new FaceppDetect();
-				faceppDetect.setDetectCallback(new DetectCallback() {
+				faceppDetect.setDetectCallback(new Callback() {
 					
-					public void detectResult(JSONObject rst) {
+					public void getResult(JSONObject rst) {
 						//Log.i(TAG, rst.toString());
 						
 						//use the red paint
@@ -145,10 +220,11 @@ public class MainActivity extends Activity {
 								}
 							});
 						}
-						
 					}
 				});
 				faceppDetect.detect(img);
+				buttonDetect.setVisibility(View.INVISIBLE);	
+				buttonCreate.setVisibility(View.VISIBLE);	
 			}
 		});
         
@@ -167,7 +243,9 @@ public class MainActivity extends Activity {
     	super.onActivityResult(requestCode, resultCode, intent);
     	
     	//the image picker callback
-    	if (requestCode == PICTURE_CHOOSE) {
+    	switch(requestCode){
+    	case PICTURE_CHOOSE:
+    	{
     		if (intent != null) {
     			//The Android api ~~~ 
     			//Log.d(TAG, "idButSelPic Photopicker: " + intent.getDataString());
@@ -196,12 +274,95 @@ public class MainActivity extends Activity {
     			Log.d(TAG, "idButSelPic Photopicker canceled");
     		}
     	}
+    	case TAKE_PICTURE:
+    	{
+    		if (resultCode == Activity.RESULT_OK) {
+                Uri selectedImage = imageUri;
+                getContentResolver().notifyChange(selectedImage, null);
+                ContentResolver cr = getContentResolver();
+                try {
+                     photo = android.provider.MediaStore.Images.Media
+                     .getBitmap(cr, selectedImage);
+
+                    imageView.setImageBitmap(photo);
+                    Toast.makeText(this, selectedImage.toString(),
+                            Toast.LENGTH_LONG).show();
+                } catch (Exception e) {
+                    Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT)
+                            .show();
+                    Log.e("Camera", e.toString());
+                }
+            }
+    	}
+    	}
     }
 
-    private class FaceppDetect {
-    	DetectCallback callback = null;
+    private class FaceppCreate {
+    	Callback callback = null;
     	
-    	public void setDetectCallback(DetectCallback detectCallback) { 
+    	public void setCreateCallback(Callback createCallback) {
+    		callback = createCallback;
+    	}
+    	
+    	public void create(){
+    		
+    		new Thread(new Runnable(){
+    			
+    			public void run() {
+    				try {
+    					int numOfFaces = jsonResponse.getJSONArray("face").length();
+    					if(numOfFaces>1){
+    						MainActivity.this.runOnUiThread(new Runnable(){
+                				public void run() {
+                					textView.setText("too many faces.");
+                				}
+                			});
+    						return;
+    					}
+    					//create a person
+    					faceId = jsonResponse.getJSONArray("face").getJSONObject(0).getString("face_id");
+    					Log.i(TAG,"faceId = "+faceId);
+    					personName = "person_1";
+    					PostParameters params = new PostParameters().setPersonName(personName).setFaceId(faceId);
+            			jsonResponse=httpRequests.personCreate(params);
+            			if(callback != null){
+            				callback.getResult(jsonResponse);
+            			}
+            			Log.i(TAG,"person create response: "+jsonResponse);
+
+            			jsonResponse=httpRequests.trainVerify(new PostParameters().setPersonName(personName));
+            			
+            			System.out.println(httpRequests.getSessionSync(jsonResponse.get("session_id").toString()));
+            			
+            			MainActivity.this.runOnUiThread(new Runnable(){
+            				public void run() {
+            					textView.setText("success.");
+            				}
+            			});
+            		} catch (FaceppParseException e) {
+            			e.printStackTrace();
+            			MainActivity.this.runOnUiThread(new Runnable(){
+            				public void run() {
+            					textView.setText("Network error.");
+            				}
+            			});
+            		} catch (JSONException e) {
+            			e.printStackTrace();
+						MainActivity.this.runOnUiThread(new Runnable(){
+            				public void run() {
+            					textView.setText("No face detected.");
+            				}
+            			});
+            		}
+    			}
+    		}).start();
+    	}
+    }
+    
+    private class FaceppDetect {
+    	Callback callback = null;
+    	
+    	public void setDetectCallback(Callback detectCallback) { 
     		callback = detectCallback;
     	}
 
@@ -210,7 +371,6 @@ public class MainActivity extends Activity {
     		new Thread(new Runnable() {
 				
 				public void run() {
-					HttpRequests httpRequests = new HttpRequests("4480afa9b8b364e30ba03819f3e9eff5", "Pz9VFT8AP3g_Pz8_dz84cRY_bz8_Pz8M", true, false);
 		    		//Log.v(TAG, "image size : " + img.getWidth() + " " + img.getHeight());
 		    		
 		    		ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -226,10 +386,10 @@ public class MainActivity extends Activity {
 		    		
 		    		try {
 		    			//detect
-						JSONObject result = httpRequests.detectionDetect(new PostParameters().setImg(array));
+						jsonResponse = httpRequests.detectionDetect(new PostParameters().setImg(array));
 						//finished , then call the callback function
 						if (callback != null) {
-							callback.detectResult(result);
+							callback.getResult(jsonResponse);
 						}
 					} catch (FaceppParseException e) {
 						e.printStackTrace();
@@ -245,7 +405,7 @@ public class MainActivity extends Activity {
     	}
     }
 
-    interface DetectCallback {
-    	void detectResult(JSONObject rst);
+    public interface Callback {
+    	void getResult(JSONObject rst);
 	}
 }
