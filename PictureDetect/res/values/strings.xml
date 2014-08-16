@@ -1,5 +1,4 @@
 <resources>
-
     <string name="app_name">PictureDetect</string>
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
@@ -8,7 +7,9 @@
     <string name="button2Text">Detect</string>
     <string name="button3Text">Create</string>
     <string name="button4Text">Photo</string>
+    <string name="button5Text">Verify</string>
     <string name="textView1Text">Click Get Image</string>
     <string name="imageContentDescription">This is for display image</string>
+    
 
 </resources>
